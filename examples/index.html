@@ -4,10 +4,11 @@
     <body>
         <h1 id="text"></h1>
     </body>
-    
+
     <script type="module">
         import { DelibAPI } from "./delib.min.js"
 
+        // replace with your device ip, private key (secret) and command
         DelibAPI.request("0.0.0.0", "00000000000000000000000000000000", "!example").then(data => {
             // `data` is a plain text device response
             document.getElementById("text").innerText = data;
