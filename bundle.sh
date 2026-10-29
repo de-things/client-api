@@ -1,2 +1,2 @@
 npm install esbuild --save-dev
-npx esbuild ./main.js --bundle --minify --outfile=./delib.min.js --platform=browser
+npx esbuild ./main.js --bundle --minify --outfile=./examples/delib.min.js --format=esm --platform=browser
