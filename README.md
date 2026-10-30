@@ -3,7 +3,7 @@
 De:things relies on [GCM](https://en.wikipedia.org/wiki/Galois/Counter_Mode) encryption, so this library is just a time-saver that saves you from manually encrypting requests for de:things infrastructure on **client side**.
 
 ```js
-import { DelibAPI } from "path/to/delib/index.js"
+import { DelibAPI } from "path/to/index.js"
 
 // server entry to send request to (if you use library on client side)
 const url_str = "/api";
