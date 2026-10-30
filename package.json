@@ -1,8 +1,5 @@
 {
-  "name": "delib-api",
+  "name": "delib",
   "version": "1.0.0",
-  "type": "module",
-  "devDependencies": {
-    "esbuild": "^0.28.2"
-  }
+  "type": "module"
 }
