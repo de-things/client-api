@@ -71,9 +71,8 @@ export class DelibAPI {
         const iv_len = 12;
         const tag_size = 16; // 16 * 8 = 128bit gcm tag
 
-        if (data.length < iv_len + tag_size) {
-            return false;
-        }
+        if (data.length < iv_len + tag_size) return;
+
 
         const iv = data.slice(0, iv_len); // iv slice
         const cipher_n_tag = data.slice(iv_len); // cipher + tag slice
@@ -91,14 +90,14 @@ export class DelibAPI {
 
     /** Sends async request with following arguments:
      * 
-     * `url_str` - Device direct url address to send request to or some location to a server path to evade cross-origin requests.
+     * `url_str` - Request URL as a `string`.
      * 
-     * `secret_str` - 32-bytes device secret string used to encrypt data transfer.
+     * `secret_str` - 32-bytes private key (AES_256_GCM) used to encrypt data transfer as a `string`.
      * 
-     * `data` - Some plain text data to send.
+     * `data` - Data to send as a `string`.
      */
     static async request(url_str, secret_str, data) {
-        let response;
+        let response = true;
 
         const body = await this.encrypt(data, secret_str);
 
@@ -106,15 +105,13 @@ export class DelibAPI {
         
         const req = await fetch(url_str, { method: "POST", body });
 
-        if (!req.ok()) return;
+        if (!req.ok) return;
 
         const enc_base64 = await req.text();
 
-        if (!enc_base64) return;
-
-        response = this.decrypt(enc_base64, secret_str);
-
-        if (!response) return;
+        if (enc_base64) { // if response has a body
+            response = await this.decrypt(enc_base64, secret_str);
+        }
 
         return response;
     }
