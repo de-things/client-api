@@ -4,7 +4,7 @@ export class DelibAPI {
     static #fromBase64 = base64 => Uint8Array.from(atob(base64), char => char.charCodeAt(0));
 
     static #isIPv6(ip) {
-        if (typeof ip !== "string" || ip == "") return;
+        if (typeof ip !== "string") return;
 
         try {
             const url = new URL(`http://[${ip}]/`);
@@ -24,16 +24,21 @@ export class DelibAPI {
             /^(0|[1-9]\d{0,2})$/.test(part) && Number(part) <= 255
         );
     }
-
-    static #validateIP = ip => this.#isIPv4(ip) || this.#isIPv6(ip);
-    static #validateCmd = cmd => typeof cmd === "string" && cmd.trim().length >= 1;
-    static #validateSecret = secret_str => new TextEncoder().encode(secret_str).length == 32;
+    /** True whenever ip is valid */
+    static validateIP = ip => this.#isIPv4(ip) || this.#isIPv6(ip);
+    /** True whenever data is valid */
+    static validateData = data => typeof data === "string" && data.trim().length >= 1;
+    /** True whenever secret (AES-GCM private key) is valid */
+    static validateSecret = secret_str => new TextEncoder().encode(secret_str).length == 32;
 
     /** Encrypts data using aes-256-gcm.
-     * `data` - string data to encrypt;
+     * `data` - plain text data to encrypt;
      * `secret_str` - 32-bytes key as a string.
      */
-    static async #encrypt(data, secret_str) {
+    static async encrypt(data, secret_str) {
+        if (typeof data !== "string") return;
+        if (!this.validateSecret(secret_str)) return;
+
         const secret_bytes = this.#toUint8Array(secret_str);
         const iv = crypto.getRandomValues(new Uint8Array(12));
 
@@ -57,8 +62,9 @@ export class DelibAPI {
      * `enc_base64` - an encrypted base64 hash string to decrypt.
      * `secret_str` - 32-bytes key as a string.
      * */
-    static async #decrypt(enc_base64, secret_str) {
-        if (!enc_base64) return;
+    static async decrypt(enc_base64, secret_str) {
+        if (typeof enc_base64 !== "string") return;
+        if (!this.validateSecret(secret_str)) return;
 
         const secret_bytes = this.#toUint8Array(secret_str);
         const data = this.#fromBase64(enc_base64);
@@ -83,28 +89,30 @@ export class DelibAPI {
         return (new TextDecoder()).decode(result);
     }
 
-    /** Sends async request with following arguments.
-     * `ip` - Device IP (IPv4/IPv6) address to send request to.
+    /** Sends async request with following arguments:
+     * 
+     * `url_str` - Device direct url address to send request to or some location to a server path to evade cross-origin requests.
+     * 
      * `secret_str` - 32-bytes device secret string used to encrypt data transfer.
-     * `command` - Some command to send as a string.
+     * 
+     * `data` - Some plain text data to send.
      */
-    static async request(ip, secret_str, command) {
-        if (!this.#validateIP(ip)) return console.error("Invalid device IP.");
-        if (!this.#validateSecret(secret_str)) return console.error("Invalid device secret.");
-        if (!this.#validateCmd(command)) return console.error("Invalid device command.");
-
+    static async request(url_str, secret_str, data) {
         let response;
 
-        let body = await this.#encrypt(command, secret_str);
+        const body = await this.encrypt(data, secret_str);
 
         if (!body) return;
         
-        let req = await fetch(`http://${ip}:80`, { method: "POST", body });
+        const req = await fetch(url_str, { method: "POST", body });
 
         if (!req.ok()) return;
 
-        let enc_base64 = await req.text();
-        response = this.#decrypt(enc_base64, secret_str);
+        const enc_base64 = await req.text();
+
+        if (!enc_base64) return;
+
+        response = this.decrypt(enc_base64, secret_str);
 
         if (!response) return;
 
